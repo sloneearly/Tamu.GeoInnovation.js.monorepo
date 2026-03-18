@@ -139,7 +139,8 @@ export const MoveInConfiguration: EventConfiguration = {
   mapCenter: [-96.34358, 30.61035],
   eventDates: [],
   zoom: 16,
-  builderStartStep: 'accommodations'
+  builderStartStep: 'accommodations',
+  focusLayerId: MOVE_IN_LAYERS.RESIDENCE_HALL
 };
 
 enum MoveInBuilderOptions {

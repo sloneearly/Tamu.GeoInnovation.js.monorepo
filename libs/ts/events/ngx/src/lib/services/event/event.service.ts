@@ -6,7 +6,7 @@ import deepmerge from 'deepmerge';
 import { EsriMapService, EsriModuleProviderService, LayerSourcesService } from '@tamu-gisc/maps/esri';
 
 import { EnvironmentService } from '@tamu-gisc/common/ngx/environment';
-import { LayerSource } from '@tamu-gisc/common/types';
+import { FeatureLayerSourceProperties, LayerSource } from '@tamu-gisc/common/types';
 
 import {
   EventSettings,
@@ -62,6 +62,15 @@ export class EventService {
     try {
       const eventLayers = this.specialEventLayerReferences;
 
+      // Re-read settings at draw time so we always have the latest values from storage,
+      // regardless of when the EventService was constructed relative to the route guard.
+      const settings = this.eventSettingsService.settings();
+
+      if (!settings) {
+        console.warn('EventService.drawEvent: No settings found. Skipping layer drawing.');
+        return;
+      }
+
       // For each source, iterate through event options and determine if any of the option effect targets apply to the immediate source.
       // If so, apply the effect.
       const sources = eventLayers
@@ -77,7 +86,7 @@ export class EventService {
               if (option.effects.layers && option.effects.layers?.length > 0) {
                 for (const layer of option.effects.layers) {
                   if (layer.layerId === source.id) {
-                    const settingValue = this.settings[option.value];
+                    const settingValue = settings[option.value];
 
                     if (settingValue !== undefined) {
                       let value: string | number | boolean | null = null;
@@ -99,19 +108,33 @@ export class EventService {
 
                           // If there's already a definition expression set, use the deconflicting strategy to determine how to apply the new expression.
                           // If there's no deconflicting strategy, default to 'append-and'
+                          //
+                          // Read from native.definitionExpression because generateLayer merges { ...source, ...source.native },
+                          // meaning native properties always override root-level ones. Treat '1=0' as empty — it is only
+                          // a placeholder meaning "show nothing initially" and should be replaced by the real expression.
 
-                          const existingExpression = (source as esri.FeatureLayer).definitionExpression;
+                          const featureSource = source as FeatureLayerSourceProperties;
+                          const nativeExpr = featureSource.native?.definitionExpression;
+                          const existingExpression = nativeExpr && nativeExpr !== '1=0' ? nativeExpr : undefined;
+
+                          const setExpression = (expr: string) => {
+                            if (featureSource.native) {
+                              featureSource.native.definitionExpression = expr;
+                            } else {
+                              (source as esri.FeatureLayer).definitionExpression = expr;
+                            }
+                          };
 
                           if (existingExpression) {
                             const deconflictingStrategy =
                               correspondingOption.deconflictingStrategy || ConversionDeconflictingStrategy.APPEND_AND;
 
                             if (deconflictingStrategy === ConversionDeconflictingStrategy.APPEND_AND) {
-                              (source as esri.FeatureLayer).definitionExpression = `(${existingExpression}) AND (${value})`;
+                              setExpression(`(${existingExpression}) AND (${value})`);
                             } else if (deconflictingStrategy === ConversionDeconflictingStrategy.APPEND_OR) {
-                              (source as esri.FeatureLayer).definitionExpression = `(${existingExpression}) OR (${value})`;
+                              setExpression(`(${existingExpression}) OR (${value})`);
                             } else if (deconflictingStrategy === ConversionDeconflictingStrategy.REPLACE) {
-                              (source as esri.FeatureLayer).definitionExpression = value;
+                              setExpression(value as string);
                             } else {
                               // Ignore
                               console.warn(
@@ -119,7 +142,7 @@ export class EventService {
                               );
                             }
                           } else {
-                            (source as esri.FeatureLayer).definitionExpression = value;
+                            setExpression(value as string);
                           }
                         }
 
@@ -131,10 +154,16 @@ export class EventService {
                       }
 
                       // Only set definition expression if we have a value and it's not already set by expression above
-                      if (value !== null && !(source as esri.FeatureLayer).definitionExpression) {
-                        (source as esri.FeatureLayer).definitionExpression = `${layer.field} = ${
-                          typeof value === 'string' ? `'${value}'` : value
-                        }`;
+                      const _featureSource = source as FeatureLayerSourceProperties;
+                      const _hasNativeExpr =
+                        _featureSource.native?.definitionExpression && _featureSource.native.definitionExpression !== '1=0';
+                      if (value !== null && !_hasNativeExpr && !(source as esri.FeatureLayer).definitionExpression) {
+                        const expr = `${layer.field} = ${typeof value === 'string' ? `'${value}'` : value}`;
+                        if (_featureSource.native) {
+                          _featureSource.native.definitionExpression = expr;
+                        } else {
+                          (source as esri.FeatureLayer).definitionExpression = expr;
+                        }
                       }
                     }
                   }
@@ -147,7 +176,32 @@ export class EventService {
         });
 
       if (sources.length > 0) {
-        this.mapService.loadLayers(sources);
+        await this.mapService.loadLayers(sources);
+
+        // After layers are loaded, zoom to the focus layer if the event configuration specifies one.
+        // We explicitly set definitionExpression on the loaded layer to ensure the correct expression
+        // is applied (generateLayer may not always propagate native.definitionExpression reliably),
+        // then query its features to get the geometry needed to zoom.
+        const focusLayerId = this.eventSettingsService.eventConfiguration()?.configuration?.focusLayerId;
+        if (focusLayerId) {
+          const focusSource = sources.find((s) => s.id === focusLayerId) as FeatureLayerSourceProperties;
+          const focusExpr = focusSource?.native?.definitionExpression;
+          if (focusExpr && focusExpr !== '1=0') {
+            setTimeout(() => {
+              const layer = this.mapService.findLayerById(focusLayerId) as esri.FeatureLayer;
+              if (layer) {
+                // The layer was created with definitionExpression already set via source.native,
+                // so queryFeatures() will automatically scope to those features.
+                // Passing returnGeometry so the view can zoom to the feature's extent.
+                layer.queryFeatures({ returnGeometry: true, outFields: ['*'] }).then((result) => {
+                  if (result && result.features.length > 0) {
+                    this.mapService.zoomTo({ graphics: result.features, zoom: 18 });
+                  }
+                }).catch((err) => console.error('EventService: Failed to zoom to focus layer', err));
+              }
+            }, 200);
+          }
+        }
       } else {
         throw new Error('drawEvent: No layer sources found.');
       }

@@ -118,6 +118,12 @@ export interface EventConfiguration {
    * Text to display on the review step.
    */
   reviewText?: string;
+
+  /**
+   * When set, the map will zoom to the features of this layer after the event layers are loaded.
+   * Useful for maps where a specific layer represents the user's focal point (e.g., a selected residence hall).
+   */
+  focusLayerId?: string;
 }
 
 /**

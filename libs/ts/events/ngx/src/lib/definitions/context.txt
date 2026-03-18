@@ -1,0 +1,478 @@
+Agent:Explore move-in builder code
+IN
+Find code related to the "Move-In builder" feature in the aggiemap app. I need to understand:
+1. How the move-in builder zooms/navigates to a residence hall when selected
+2. How the residence hall legend item is shown/hidden
+3. The map extent/zoom behavior when a building is selected
+
+Search for files related to "move-in", "movein", "move_in" in the aggiemap angular app. Look in libs/ts and apps directories. Find the component that handles the move-in configuration/builder and show me relevant code about zooming to a building and the legend for residence halls.
+
+Be thorough - show me the actual code content of the key files.
+Globpattern: "**/*move*in*.ts"
+Found 36 files
+Globpattern: "**/*move*in*.html"
+Found 10 files
+Globpattern: "**/*move*in*.scss"
+Found 10 files
+Grep "move.?in|movein" (type: ts)
+58 lines of output
+Read zone-select.component.ts
+Read move-in-out-settings.service.ts
+Read move-in-out.service.ts
+Read map.component.ts
+Read move-in-out.interface.ts
+Read move-in-out.dictionary.ts
+Grep "legend|Legend" (glob: **/movein/**, type: ts)
+7 lines of output
+Read map.component.html
+Read map.module.ts
+Read sidebar.component.ts
+Read definitions.ts
+Bash Find environment configuration files
+IN
+find /workspaces/Tamu.GeoInnovation.js.monorepo/apps/ts-move-in-out-angular -name "*.ts" -path "*environment*" | head -10
+
+OUT
+/workspaces/Tamu.GeoInnovation.js.monorepo/apps/ts-move-in-out-angular/src/environments/environment.ts
+/workspaces/Tamu.GeoInnovation.js.monorepo/apps/ts-move-in-out-angular/src/environments/definitions.ts
+/workspaces/Tamu.GeoInnovation.js.monorepo/apps/ts-move-in-out-angular/src/environments/environment.prod.ts
+Read definitions.ts (lines 101-300)
+Grep "residence.*layer|residence-layer|zoomTo|zoom.*building|zoom.*residence" (glob: **/movein/**, type: ts)
+31 lines of output
+Bash Search git log for move-in and related commits
+IN
+git log --oneline --all | grep -i "move.*in\|residence\|builder\|legend" | head -20
+
+OUT
+b768b1dc Removed reserved parking and updated volleyball
+527f31fe fix(aggiemap-angular): Fix issue with safety-first on sport map legends (#652)
+1f3c133a move _sportsSafetyFirsyLayerIds field before method definitions
+439ecbb7 Fixed issue with safety-first on sport map legends
+8111a42c made legend config defaults safer
+f29e1217 feat(aggiemap-angular): New Move In Builder (#639)
+608fd0ea Fix build errors from bad rebase conflict resolution in legend-element
+ceeb1290 Merge branch 'development' into move-in-builder
+011edd51 fix(aggiemap-angular): Remove unnecessary NSC and Break/Summer Parking Map duplicate files (#645)
+c49f1eac fix(aggiemap-angular): Remove Paid Parking from Aggieland Saturday Legend (#635)
+e3d47209 Fixed issue with background color on residence hall selection
+ad3e57c9 fix(aggiemap-angular): Remove Paid Parking from Aggieland Saturday Legend (#635)
+52034981 Recreated old Move In map options
+79a882c7 Created new options for builder
+1ff505eb Created new options for builder
+1951d5a0 Removed paid parking
+0cf85c05 Removed typo and fixed formatting
+7f96109f Removed lot specific parking layer
+6e3f28d8 Remove unnecessary Accessible Parking toggleable layer
+6047e300 simplified and removed renderer for testing purposes
+Bash Show move-in service from current branch
+IN
+git show move-in-builder-fix:libs/ts/movein/ngx/src/lib/modules/map/services/move-in-out/move-in-out.service.ts | head -100
+
+OUT
+import { Injectable } from '@angular/core';
+import { delay } from 'rxjs';
+
+import { EsriMapService, EsriModuleProviderService } from '@tamu-gisc/maps/esri';
+import { CompoundOperator, makeWhere } from '@tamu-gisc/common/utils/database';
+
+import { EnvironmentService } from '@tamu-gisc/common/ngx/environment';
+import { FeatureLayerSourceProperties, LayerSource } from '@tamu-gisc/common/types';
+
+import { MoveInSettings } from '../../../../interfaces/move-in-out.interface';
+import { BOUNDARIES } from '../../../../dictionaries/move-in-out.dictionary';
+import { MoveInOutSettingsService } from '../move-in-out-settings/move-in-out-settings.service';
+
+import esri = __esri;
+
+const LayerReferences = {
+  residence: 'residence-layer',
+  noParking: 'no-parking-layer',
+  personalEngraving: 'personal-engraving-layer',
+  busStops: 'move-in-bus-stops-layer',
+  refreshments: 'move-in-info-layer',
+  recycle: 'recycle-layer',
+  parkingLots: 'move-in-parking-lots-layer',
+  parkingStreets: 'move-in-parking-streets-layer',
+  accessible: 'accessible-parking-spaces-layer',
+  checkin: 'move-in-out-checkin-layer',
+  dining: 'dining-areas-layer'
+};
+
+@Injectable({
+  providedIn: 'root'
+})
+export class MoveinOutService {
+  public settings: MoveInSettings;
+
+  private _map: esri.Map;
+  private _view: esri.MapView;
+
+  constructor(
+    private readonly env: EnvironmentService,
+    private readonly moduleProvider: EsriModuleProviderService,
+    private readonly mapService: EsriMapService,
+    private readonly mioSettings: MoveInOutSettingsService
+  ) {
+    this.mapService.store.pipe(delay(250)).subscribe((instanced) => {
+      this._map = instanced.map;
+      this._view = instanced.view as esri.MapView;
+      this.init();
+    });
+  }
+
+  public init() {
+    this.settings = this.mioSettings.settings;
+
+    this.drawResidence();
+    this.drawParking();
+    this.drawAccessibleParkingSpaces();
+    this.drawPOIs();
+  }
+
+  public async drawResidence() {
+    try {
+      const source = this.getLayerSourceCopy(LayerReferences.residence) as FeatureLayerSourceProperties;
+
+      const buildingListString = this.makeSQLInStringList(this.settings.residence.Bldg_Number);
+
+      if (source.native) {
+        source.native.definitionExpression = `Bldg_Number IN (${buildingListString})`;
+      }
+
+      // Add the residence layer
+      await this.mapService.loadLayers([source as LayerSource]);
+
+      setTimeout(() => {
+        const layer = this.mapService.findLayerById((source as LayerSource)?.id) as esri.FeatureLayer;
+
+        if (layer) {
+          layer.queryFeatures().then((result) => {
+            if (result.features.length > 0) {
+              this.mapService.zoomTo({ graphics: result.features, zoom: 18 });
+            }
+          });
+        }
+      }, 100);
+    } catch (err) {
+      console.error(`Failed to draw residence`, err);
+    }
+  }
+
+  public async drawAccessibleParkingSpaces() {
+    try {
+      if (this.settings.accessible) {
+        const source = this.getLayerSourceCopy(LayerReferences.accessible) as FeatureLayerSourceProperties;
+
+        if (source.native) {
+          // Get features intersecting in user-selected zone
+          const features = await this.runTask(source.url, { where: source.native.definitionExpression }, true);
+
+          if (features.features.length > 0) {
+            // Make list of object id's in user-selected zone.
+Read accommodations.component.ts
+Read review.component.ts
+Globpattern: "**/movein/**/builder/*.ts"
+Found 2 files
+Read builder.component.ts
+Bash Show recent commits on move-in-builder-fix branch
+IN
+git log --oneline move-in-builder-fix~5..move-in-builder-fix
+
+OUT
+527f31fe fix(aggiemap-angular): Fix issue with safety-first on sport map legends (#652)
+f37e934e fix(aggiemap-angular) Put main campus parking back in all.definitions file (#653)
+ec4c7f0d feat(gisday-nest): VGI Season export (#650)
+0f4e8124 feat(aggiemap-angular): Update Big Event map closures, layer order, map note support, and tool bring-back labeling (#651)
+69af9007 feat(aggiemap-angular): Add New Sports Parking Maps (#643)
+Bash Show file changes between development and move-in-builder-fix
+IN
+git diff development..move-in-builder-fix --stat
+
+OUT
+(Bash completed with no output)
+Bash Find move-in related commits in graph
+IN
+git log --oneline --graph --all | grep -A5 -B5 "move-in" | head -30
+
+OUT
+| * | c75b4d18 Most maps functional except Safety First
+| * | 515a89e4 Working through visibility + popup issues
+| * | 9db96c75 Reverted map.services.ts and fixed swimming parking lot visibility
+| | | * 9b183e20 WIP
+| | |/  
+| | | *   ceeb1290 Merge branch 'development' into move-in-builder
+| | | |\  
+| |_|_|/  
+|/| | |   
+* | | | a32c5c97 feat(aggiemap-angular) Update Physics Fest map (#646)
+* | | | 26cd3b00 feat(aggiemap-angular): Add sustainable transportation layers (#648)
+--
+| | | | | | | | | | | * | 36b6165a Fixed formatting
+| | | | | | | | | | | * | f47a7cdf Built config file for freshmen parking
+| | |_|_|_|_|_|_|_|_|/ /  
+| |/| | | | | | | | | |   
+| | | | | | | | | | | | * e3d5833b Updated with new TS source
+| | | | | | | | | | | | *   4659d2fb Merge branch 'development' into move-in-map
+| | | | | | | | | | | | |\  
+| | | | | | | | | | | | * | 1264be7a Fixed formatting
+| | | | | | | | | | | | * | c4c57d98 Built config file for move in map
+| | |_|_|_|_|_|_|_|_|_|/ /  
+| |/| | | | | | | | | | |   
+--
+* e73d0728 feat(aggiemap-angular): Dynamic building directory (#427)
+* 0f93ef94 fix(ts-events-ngx): Routing between mobile <=> desktop (#426)
+* f1d6bb95 fix(maps-feature-legend): Legend definitionExpression filtering (#425)
+* ff72973b fix(aggiemap-angular): Update static building directory (#424)
+* be72b62e feat(aggiemap-angular): Merge TS event modules (#422)
+* 23eb567d fix(ts-move-in-out-angular): Summer 2025 (#421)
+Bash Show commits on current branch
+IN
+git log --oneline HEAD | head -10
+
+OUT
+527f31fe fix(aggiemap-angular): Fix issue with safety-first on sport map legends (#652)
+f37e934e fix(aggiemap-angular) Put main campus parking back in all.definitions file (#653)
+ec4c7f0d feat(gisday-nest): VGI Season export (#650)
+0f4e8124 feat(aggiemap-angular): Update Big Event map closures, layer order, map note support, and tool bring-back labeling (#651)
+69af9007 feat(aggiemap-angular): Add New Sports Parking Maps (#643)
+dcd9426c feat(aggiemap-angular): Add Main Parking map  + Allow for Multiple Attributes in Popups (#614)
+f29e1217 feat(aggiemap-angular): New Move In Builder (#639)
+a32c5c97 feat(aggiemap-angular) Update Physics Fest map (#646)
+26cd3b00 feat(aggiemap-angular): Add sustainable transportation layers (#648)
+fc13f8a9 Define URL query parameters in search sources for multi-layer permalink support (#603)
+Bash Show current branch status
+IN
+git status
+
+OUT
+On branch move-in-builder-fix
+nothing to commit, working tree clean
+Bash Show unique commits on move-in-builder-fix
+IN
+git log --oneline development..move-in-builder-fix | head -5
+
+OUT
+(Bash completed with no output)
+Bash Show TypeScript changes on move-in-builder-fix
+IN
+git diff development..move-in-builder-fix -- '*.ts' | head -200
+
+OUT
+(Bash completed with no output)
+Read definitions.ts (lines 301-500)
+Grep "listMode|visible|legend" (glob: **/ts-move-in-out-angular/**/definitions.ts, type: ts)
+172 lines of output
+Read move-in-out.service.ts
+Read definitions.ts
+Now let me look at the map component to understand the initial zoom behavior:
+
+Globpattern: "apps/ts-move-in-out-angular/src/**/*.component.ts"
+Found 1 file
+Globpattern: "libs/ts/movein/ngx/src/lib/modules/map/**/*.ts"
+Found 7 files
+Read map.component.ts
+Now let me look at the settings service to understand how settings are stored/read:
+
+Read move-in-out-settings.service.ts
+Let me look at the builder and zone-select components to understand the routing flow:
+
+Globpattern: "libs/ts/movein/ngx/src/lib/modules/builder/**/*.ts"
+Found 17 files
+Read review.component.ts
+Read zone-select.component.ts
+Let me look at the EsriMapService zoomTo method and search for how queryFeatures is called:
+
+Globpattern: "libs/maps/esri/src/lib/**/*.service.ts"
+Found 3 files
+Grep "zoomTo"
+2 lines of output
+Grep "zoomTo" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/maps/esri/src/lib/services/map/map.service.ts)
+65 lines of output
+Grep "loadLayers" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/maps/esri/src/lib/services/map/map.service.ts)
+63 lines of output
+Let me check the app routing to understand how the builder flows to the map:
+
+Globpattern: "apps/ts-move-in-out-angular/src/app/**/*.ts"
+Found 3 files
+Read app.module.ts
+Let me look at the git log on this branch to understand what changes were made:
+
+Bash Show recent commits on the current branch
+IN
+git log --oneline -20 move-in-builder-fix
+
+OUT
+527f31fe fix(aggiemap-angular): Fix issue with safety-first on sport map legends (#652)
+f37e934e fix(aggiemap-angular) Put main campus parking back in all.definitions file (#653)
+ec4c7f0d feat(gisday-nest): VGI Season export (#650)
+0f4e8124 feat(aggiemap-angular): Update Big Event map closures, layer order, map note support, and tool bring-back labeling (#651)
+69af9007 feat(aggiemap-angular): Add New Sports Parking Maps (#643)
+dcd9426c feat(aggiemap-angular): Add Main Parking map  + Allow for Multiple Attributes in Popups (#614)
+f29e1217 feat(aggiemap-angular): New Move In Builder (#639)
+a32c5c97 feat(aggiemap-angular) Update Physics Fest map (#646)
+26cd3b00 feat(aggiemap-angular): Add sustainable transportation layers (#648)
+fc13f8a9 Define URL query parameters in search sources for multi-layer permalink support (#603)
+011edd51 fix(aggiemap-angular): Remove unnecessary NSC and Break/Summer Parking Map duplicate files (#645)
+08d60e68 fix(aggiemap-angular): Reordered traffic layers to top (#647)
+fd2d54b8 fix(aggiemap-angular): Manually set map center and zoom for Big Event (#644)
+3663a1b1 fix(aggiemap-angular): Missing parking map links on Discover (#640)
+3426c3e2 feat(aggiemap-angular):  Add Summer/Break Parking Map (#617)
+6f19f243 feat(aggiemap-angular): Add NSC Parking map (#612)
+51568ddd fix(aggiemap-angular): Update Ring Day Dates + Fix Issue with Ring Day Map Visibility (#636)
+cf903c9d fix(aggiemap-angular) Add Notes to Aggieland Saturday Popups (#638)
+b061fba3 fix(aggiemap-angular) Make Discover + Other Options Clickable on Mobile Sidebar (#637)
+ad3e57c9 fix(aggiemap-angular): Remove Paid Parking from Aggieland Saturday Legend (#635)
+Bash Show what files changed in the new move-in builder commit
+IN
+git show f29e1217 --stat
+
+OUT
+commit f29e121702fdc8f6b034a4ec87570362c190f938
+Author: slahn <43726697+sloneearly@users.noreply.github.com>
+Date:   Mon Mar 16 15:49:42 2026 -0500
+
+    feat(aggiemap-angular): New Move In Builder (#639)
+
+ .../ngx/src/lib/definitions/move-in.definitions.ts | 739 +++++++++++++++++----
+ .../src/lib/interfaces/special-event.interface.ts  |  66 +-
+ .../src/lib/modules/builder/builder.component.scss |   5 +-
+ .../accommodations/accommodations.component.html   |  78 ++-
+ .../accommodations/accommodations.component.scss   | 161 +++++
+ .../accommodations/accommodations.component.ts     |  26 +-
+ .../builder/modules/intro/intro.component.html     |   6 +-
+ .../builder/modules/intro/intro.component.scss     |  13 +
+ .../builder/modules/intro/intro.component.ts       |  10 +-
+ .../builder/modules/review/review.component.html   |   4 +-
+ .../builder/modules/review/review.component.ts     |   9 +-
+ .../sidebar-reference.component.html               |   4 +-
+ .../services/settings/event-settings.service.ts    |  28 +
+ 13 files changed, 993 insertions(+), 156 deletions(-)
+Let me look at the new builder related files from the recent commit:
+
+Read move-in.definitions.ts
+Globpattern: "libs/ts/events/ngx/src/lib/modules/**/*move-in*"
+No files found
+Read move-in.definitions.ts (lines 101-400)
+Read move-in.definitions.ts (lines 401-800)
+Now let me look at the event settings service and how effects are applied:
+
+Read event-settings.service.ts
+Globpattern: "libs/ts/events/ngx/src/lib/modules/**/*.ts"
+Found 28 files
+Read map.component.ts
+Globpattern: "libs/ts/events/ngx/src/lib/services/**/*.ts"
+Found 2 files
+Read event.service.ts
+Read event-settings.service.ts
+Let me look at the FeatureLayerSourceProperties type and how generateLayer uses it:
+
+Grep "FeatureLayerSourceProperties" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/common/types/src)
+23 lines of output
+Grep "props = .*source.*native" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/maps/esri/src/lib/services/map/map.service.ts)
+11 lines of output
+Let me look at the EventConfiguration interface:
+
+Read special-event.interface.ts
+Let me check findLayerById in the map service:
+
+Grep "findLayerById" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/maps/esri/src/lib/services/map/map.service.ts)
+60 lines of output
+Let me check if ZoomProperties is exported from the map service:
+
+Grep "ZoomProperties" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/maps/esri/src/lib/services/map/map.service.ts)
+15 lines of output
+Now I have a clear picture of both bugs. Let me fix them:
+
+Bug 1: drawEvent() reads/writes definitionExpression at the root level of source, but generateLayer merges { ...source, ...source.native }, so native.definitionExpression: '1=0' always overrides the dynamically set expression — the residence hall never shows.
+
+Bug 2: The new EventService has no zoom-to logic (unlike the old MoveinOutService). The map always stays at the initial zoom: 16 campus view.
+
+Edit special-event.interface.ts
+Added 6 lines
+Edit move-in.definitions.ts
+Added 1 line
+Now fix the core bug in event.service.ts:
+
+Edit event.service.ts
+Modified
+Now fix the expression handling — replace all root-level definitionExpression reads/writes with native-aware ones:
+
+Edit event.service.ts
+Edit failed
+Read event.service.ts (lines 87-246)
+Edit event.service.ts
+Added 20 lines
+Now fix the loadLayers call to add await and add the zoom-to logic:
+
+Edit event.service.ts
+Added 15 lines
+Now let me verify the final state of the key parts of event.service.ts:
+
+Read event.service.ts (lines 2-186)
+The changes look correct. Let me verify the move-in.definitions.ts change is correct too:
+
+Grep "focusLayerId" (in /workspaces/Tamu.GeoInnovation.js.monorepo/libs/ts/events/ngx/src/lib/definitions/move-in.definitions.ts)
+5 lines of output
+All three fixes are in place. Here's a summary of what was changed and why:
+
+Root causes and fixes
+Bug 1 — Residence Hall not highlighted on map
+
+event.service.ts — drawEvent() was reading/writing definitionExpression at the root level of the LayerSource object (via (source as esri.FeatureLayer).definitionExpression). However, generateLayer in map.service.ts merges layers as { ...source, ...source.native }, meaning source.native.definitionExpression always overrides the root-level value. Since MoveInColdLayerSources sets native.definitionExpression: '1=0' as an initial "show nothing" placeholder, it was permanently overriding the hall-specific expression.
+
+Fix: Read and write source.native.definitionExpression instead. The '1=0' placeholder is treated as empty so it gets replaced rather than combined via APPEND_AND.
+
+Bug 2 — Map stays at full campus view instead of zooming to selected hall
+
+The new EventService had no zoom-to logic, unlike the old MoveinOutService.drawResidence() which queried the loaded layer's features and called mapService.zoomTo().
+
+Fix: Added focusLayerId?: string to EventConfiguration, set it to RESIDENCE_HALL in move-in.definitions.ts, and added zoom logic in drawEvent() — after layers are loaded, it queries the focus layer's features and zooms to them at zoom 18.
+
+Make an in-depth writeup of everything you just did, with enough depth to give context for a new claude code chat
+Write project_move_in_builder_fix.md
+181 lines
+Globpattern: "/home/node/.claude/projects/-workspaces-Tamu-GeoInnovation-js-monorepo/memory/MEMORY.md"
+No files found
+Bash Check memory directory contents
+IN
+ls /home/node/.claude/projects/-workspaces-Tamu-GeoInnovation-js-monorepo/memory/ 2>/dev/null || echo "Directory empty or missing"
+
+OUT
+Directory empty or missing
+Write MEMORY.md
+5 lines
+Here's the full writeup (also saved to memory):
+
+What Was Fixed and Why
+Background: Two Move-In Systems
+The repo has two separate move-in builder implementations. The old system lives in apps/ts-move-in-out-angular/ + libs/ts/movein/ngx/ and uses MoveinOutService. The new system (the one with bugs, introduced in commit f29e1217) lives in libs/ts/events/ngx/ and uses a generalized EventService framework that any event (move-in, Ring Day, etc.) can plug into via configuration objects.
+
+Architecture of the New System
+Each event is defined as an AggiemapCustomMapConfiguration with:
+
+configuration — metadata (id, zoom, mapCenter, etc.)
+sources — LayerSource[] defining the event's map layers (with native sub-properties that get passed to JSAPI)
+options — the builder questions; each option has effects.layers with conversions mapping user selections to SQL definitionExpression strings
+references — enum-like layer ID keys
+EventService.drawEvent() runs on map init, applies each conversion to its target layer's source, then calls mapService.loadLayers().
+
+The critical architectural detail: mapService.generateLayer() builds layer props as:
+
+
+props = { ...source, ...source.native }
+native always overrides root-level. This was the root cause of Bug 1.
+
+Bug 1 — Residence Hall Not Highlighted
+Root cause: move-in.definitions.ts defines the RESIDENCE_HALL layer with native.definitionExpression: '1=0' (a "show nothing initially" placeholder). drawEvent() was setting the user's hall expression at the root level of source (via (source as esri.FeatureLayer).definitionExpression = value). But since generateLayer spreads native last, native.definitionExpression: '1=0' always overrode it. The building was never shown.
+
+Fix in event.service.ts: Changed all expression reads/writes to target source.native.definitionExpression. Added a setExpression() helper that writes to native when present. Treats '1=0' as empty (so it's replaced, not AND'd with the real expression — (1=0) AND (Bldg_Number IN ('0415')) would still show nothing).
+
+Bug 2 — Map Not Zooming to Selected Hall
+Root cause: The old MoveinOutService.drawResidence() had explicit logic to query the loaded hall layer's features and call mapService.zoomTo({ graphics, zoom: 18 }). The new EventService.drawEvent() never had this — it just loaded layers and left the map at initial zoom: 16.
+
+Fix — three files:
+
+special-event.interface.ts: Added focusLayerId?: string to EventConfiguration
+move-in.definitions.ts: Set focusLayerId: MOVE_IN_LAYERS.RESIDENCE_HALL in MoveInConfiguration
+event.service.ts: After await loadLayers(), added a 100ms timeout to query the focus layer's features with returnGeometry: true and zoom to them at zoom 18
+The focusLayerId mechanism is generic — any future event can use it.
