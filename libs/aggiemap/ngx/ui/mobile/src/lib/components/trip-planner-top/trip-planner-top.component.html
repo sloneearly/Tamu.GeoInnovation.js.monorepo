@@ -1,16 +1,17 @@
 <div [@offCanvasSlideUpFromTop]="hide">
-  <div id="top">
+  <div style="display: flex; gap: 0.25rem; align-items: flex-start;">
     <div class="action">
-      <i class="material-icons" (click)="returnBaseRoute()">arrow_back</i>
+      <button type="button" (click)="returnBaseRoute()" aria-label="Return to map" style="padding: 0; border: 0; background: none; color: inherit; cursor: pointer;">
+        <i class="material-icons">arrow_back</i>
+      </button>
     </div>
-    <div class="points">
-      <div *ngFor="let stop of (stops | async); let i = index">
-        <input type="text" [placeholder]="'Search location'" [value]="stop?.attributes?.name" (click)="summonOmnisearch(i)" />
-      </div>
-    </div>
-  </div>
 
-  <div id="bottom">
-    <tamu-gisc-trip-planner-mode-picker-mobile></tamu-gisc-trip-planner-mode-picker-mobile>
+    <div class="routing-maintenance" role="status" aria-live="polite" style="flex: 1; padding: 1rem; border: 1px solid #e0e0e0; border-radius: 0.75rem; background: #fafafa;">
+      <p class="routing-maintenance__title" style="margin: 0 0 0.5rem; color: #332c2c; font-size: 1rem; font-weight: 600;">Routing Unavailable</p>
+
+      <p class="routing-maintenance__message" style="margin: 0; color: #424242; line-height: 1.5;">
+        The Aggie Map routing services are currently undergoing maintenance and are unavailable. We apologize for the inconvenience while this work is underway.
+      </p>
+    </div>
   </div>
 </div>

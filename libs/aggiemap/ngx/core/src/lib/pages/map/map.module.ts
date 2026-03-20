@@ -21,7 +21,7 @@ import { LayerListModule, LayerListComponent } from '@tamu-gisc/maps/feature/lay
 import { MapsFeatureAccessibilityModule } from '@tamu-gisc/maps/feature/accessibility';
 import { PipesModule } from '@tamu-gisc/common/ngx/pipes';
 import { LegendModule, LegendComponent } from '@tamu-gisc/maps/feature/legend';
-import { MapsFeatureTripPlannerModule, TripPlannerOptionsComponent } from '@tamu-gisc/maps/feature/trip-planner';
+import { MapsFeatureTripPlannerModule } from '@tamu-gisc/maps/feature/trip-planner';
 import { MapPopupModule, PopupMobileComponent } from '@tamu-gisc/maps/feature/popup';
 import { UIClipboardModule } from '@tamu-gisc/ui-kits/ngx/interactions/clipboard';
 import { MapsFeatureCoordinatesModule } from '@tamu-gisc/maps/feature/coordinates';
@@ -79,7 +79,7 @@ const routes: Routes = [
           { path: '', component: SidebarReferenceComponent },
           { path: 'bus', component: SidebarBusListComponent },
           { path: 'trip', component: SidebarTripPlannerComponent },
-          { path: 'trip/options', component: TripPlannerOptionsComponent },
+          { path: 'trip/options', component: SidebarTripPlannerComponent },
           { path: 'experiments', component: ExperimentsListComponent },
           { path: 'settings', component: SidebarSettingsComponent }
         ]

@@ -1,14 +1,8 @@
-<div>
-  <div>
-    <!-- Trip from and to input components. By default, two blanks are automatically generated given that a trip has a minimum of two points -->
-    <tamu-gisc-search *ngFor="let stop of stops | async" (result)="setSearchResultAsTripStop($event)" (dirty)="eventClearRoute($event)" (empty)="eventClearStop($event)" [placeholder]="'Choose point or click on the map'" [canGeolocate]="true" [value]="stop?.attributes?.name" [index]="stop.index" [rightActionIcon]="'close'"></tamu-gisc-search>
-  </div>
+<!-- Routing controls are hidden while Aggie Map routing services are under maintenance. -->
+<div class="routing-maintenance" role="status" aria-live="polite" style="padding: 1rem; border: 1px solid #e0e0e0; border-radius: 0.75rem; background: #fafafa;">
+  <p class="routing-maintenance__title" style="margin: 0 0 0.5rem; color: #332c2c; font-size: 1rem; font-weight: 600;">Routing Unavailable</p>
 
-  <!-- Trip planner connection service dropdown select element. Used in localhost and dev testing modes -->
-  <tamu-gisc-trip-planner-connection-select *ngIf="dev | async"></tamu-gisc-trip-planner-connection-select>
-
-  <!-- Trip planner mode picker element. Sets the routing mode for the trip planner service.-->
-  <tamu-gisc-trip-planner-mode-picker></tamu-gisc-trip-planner-mode-picker>
-
-  <tamu-gisc-trip-planner-directions></tamu-gisc-trip-planner-directions>
+  <p class="routing-maintenance__message" style="margin: 0; color: #424242; line-height: 1.5;">
+    The Aggie Map routing services are currently undergoing maintenance and are unavailable. We apologize for the inconvenience while this work is underway.
+  </p>
 </div>
