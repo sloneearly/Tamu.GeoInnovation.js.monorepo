@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 import { Router, ActivatedRoute } from '@angular/router';
 import { Angulartics2 } from 'angulartics2';
@@ -13,7 +13,7 @@ import { BaseDirectionsComponent } from '../base-directions/base-directions.comp
   templateUrl: './parking-lot.component.html',
   styleUrls: ['../base/base.popup.component.scss']
 })
-export class ParkingLotPopupComponent extends BaseDirectionsComponent {
+export class ParkingLotPopupComponent extends BaseDirectionsComponent implements OnInit {
   constructor(
     private rtr: Router,
     private rt: ActivatedRoute,
@@ -22,6 +22,10 @@ export class ParkingLotPopupComponent extends BaseDirectionsComponent {
     private mp: EsriMapService
   ) {
     super(rtr, rt, ps, anl, mp);
+  }
+
+  public ngOnInit() {
+    super.ngOnInit();
   }
 
   protected override _getShareUrlFragment(): string | null {
