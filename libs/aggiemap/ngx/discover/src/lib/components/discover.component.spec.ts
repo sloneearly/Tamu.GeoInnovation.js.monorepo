@@ -19,6 +19,7 @@ describe('DiscoverComponent', () => {
   const internalApplications: InternalDiscoverApplication[] = [
     createInternalApplication('accessible-parking', 'Accessible Parking', 'parking', 'parking', '2000-04-12'),
     createInternalApplication('move-in', 'Move In', 'campus', 'event', '2099-03-29'),
+    createInternalApplication('big-event', 'Big Event', 'campus', 'event', '2020-03-21'),
     createInternalApplication('football-parking', 'Football Parking', 'athletics', 'event', '2099-09-05')
   ];
 
@@ -70,6 +71,7 @@ describe('DiscoverComponent', () => {
     expect(getPanelHeading()).toBe('Campus Events');
     expect(getPanelText()).toContain('Move In');
     expect(getPanelText()).not.toContain('Accessible Parking');
+    expect(getPanelText()).not.toContain('Big Event');
   });
 
   function getPanelHeading() {

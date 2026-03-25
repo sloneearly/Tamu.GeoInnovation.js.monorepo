@@ -92,7 +92,12 @@ export class DiscoverComponent implements OnInit {
       return applications.sort((a, b) => a.name.localeCompare(b.name));
     }
 
-    return this.sortEventApplications(applications);
+    const now = Date.now();
+    const current = applications.filter(
+      (app) => this.getEarliestUpcomingDate(app.configuration.eventDates, now) !== Number.POSITIVE_INFINITY
+    );
+
+    return this.sortEventApplications(current);
   }
 
   private getUpcomingApplications(): InternalDiscoverApplication[] {
