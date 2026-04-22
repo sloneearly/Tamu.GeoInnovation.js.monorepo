@@ -261,6 +261,48 @@ export type LayerSourceType =
   | UnknownLayerSourceProperties;
 
 /**
+ * Controls how a layer's legend icons are rendered, allowing per-layer overrides for sizing,
+ * aspect ratio, and image source when Esri's default swatch output is visually inaccurate.
+ */
+export interface LayerSourceLegendConfig {
+  /**
+   * The source for the legend icon.
+   *
+   * - `'arcgis'`: Use the ArcGIS LegendViewModel-generated swatch (default).
+   * - `'renderer-symbol'`: Render the symbol directly from the layer's renderer.
+   * - `'custom-src'`: Use the `src` property below as the icon image.
+   */
+  mode?: 'arcgis' | 'renderer-symbol' | 'custom-src';
+
+  /**
+   * Custom image URL or data URI used when `mode` is `'custom-src'`.
+   */
+  src?: string;
+
+  /**
+   * When `true`, preserves the icon's original aspect ratio by applying `object-fit: contain`.
+   * Has no effect when `fit` is also set.
+   */
+  preserveAspectRatio?: boolean;
+
+  /**
+   * How the icon should fit within its rendered container. Maps to CSS `object-fit`.
+   * When set, takes precedence over `preserveAspectRatio`.
+   */
+  fit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
+
+  /**
+   * Explicit icon width in pixels. Overrides the default swatch width.
+   */
+  width?: number;
+
+  /**
+   * Explicit icon height in pixels. Overrides the default swatch height.
+   */
+  height?: number;
+}
+
+/**
  * Describes the properties for each layer source used by a layer factory to add layers to the map as required.
  */
 export type LayerSource = LayerSourceType & {
@@ -362,6 +404,14 @@ export type LayerSource = LayerSourceType & {
    * Defaults to `independent`.
    */
   popupDataResolutionStrategy?: 'independent' | 'cumulative';
+
+  /**
+   * Optional rendering overrides for this layer's legend icons.
+   *
+   * Use this when the default ArcGIS swatch output stretches, squashes, or otherwise misrepresents
+   * the layer's symbols. Only layers that opt in are affected; all others retain current behavior.
+   */
+  legend?: LayerSourceLegendConfig;
 
   /**
    * Legend items that are shown disabled in the legend as the layer visibility is on/off

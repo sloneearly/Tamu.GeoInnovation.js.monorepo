@@ -180,7 +180,13 @@ export const MaroonWhiteGameColdLayerSources: LayerSource[] = [
     native: {
       outFields: ['*'],
       renderer: maroonWhiteAccessiblePrepaidParkingRenderer
-    } as unknown as FeatureNative
+    } as unknown as FeatureNative,
+    legend: {
+      preserveAspectRatio: true,
+      fit: 'contain',
+      width: 20,
+      height: 26
+    }
   }
 ];
 

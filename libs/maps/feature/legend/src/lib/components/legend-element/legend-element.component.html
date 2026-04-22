@@ -46,9 +46,9 @@ of the table -->
 
             <!-- This case will be reached of every info node and will terminate either with an info.preview or info.src -->
             <div *ngSwitchDefault>
-              <ng-container [ngSwitch]="$any(info).preview !== undefined">
-                <div *ngSwitchCase="true" class="image-container" [elementInsert]="$any(info).preview"></div>
-                <img *ngSwitchCase="false" class="image-container" [src]="$any(info).src" [ngStyle]="{opacity: $any(info).opacity}" alt="Layer legend icon" />
+              <ng-container [ngSwitch]="$any(info).preview !== undefined && legendConfig?.mode !== 'custom-src'">
+                <div *ngSwitchCase="true" class="image-container" [elementInsert]="$any(info).preview" [ngStyle]="getLegendContainerStyles()"></div>
+                <img *ngSwitchCase="false" class="image-container" [src]="getLegendIconSrc($any(info))" [ngStyle]="getLegendIconImgStyles($any(info))" alt="Layer legend icon" />
               </ng-container>
             </div>
           </div>

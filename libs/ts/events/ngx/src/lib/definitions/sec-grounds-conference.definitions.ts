@@ -293,7 +293,13 @@ export const SecGroundsColdLayerSources: LayerSource[] = [
     url: eventUrl + '/2',
     visible: true,
     listMode: 'show',
-    native: DAY1_ROUTE_NATIVE
+    native: DAY1_ROUTE_NATIVE,
+    legend: {
+      mode: 'custom-src',
+      src: toSvgDataUri(WALKING_ROUTE_LEGEND_SVG),
+      width: 48,
+      height: 16
+    }
   },
   {
     type: 'feature',
@@ -332,7 +338,11 @@ export const SecGroundsColdLayerSources: LayerSource[] = [
     },
     visible: true,
     listMode: 'show',
-    native: createConferencePoiLayerNative(2)
+    native: createConferencePoiLayerNative(2),
+    legend: {
+      preserveAspectRatio: true,
+      fit: 'contain'
+    }
   },
   {
     type: 'feature',
@@ -355,7 +365,11 @@ export const SecGroundsColdLayerSources: LayerSource[] = [
     },
     visible: true,
     listMode: 'show',
-    native: createConferencePoiLayerNative(3)
+    native: createConferencePoiLayerNative(3),
+    legend: {
+      preserveAspectRatio: true,
+      fit: 'contain'
+    }
   }
 ];
 

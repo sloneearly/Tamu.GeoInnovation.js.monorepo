@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 
-import { EsriModuleProviderService } from '@tamu-gisc/maps/esri';
+import { EsriModuleProviderService, LayerSourcesService } from '@tamu-gisc/maps/esri';
+import { LayerSourceLegendConfig } from '@tamu-gisc/common/types';
 import {
   catchError,
   concatMap,
@@ -39,7 +40,10 @@ import esri = __esri;
   styleUrls: ['./legend-element.component.scss']
 })
 export class LegendElementComponent implements OnInit {
-  constructor(private readonly moduleProvider: EsriModuleProviderService) {}
+  constructor(
+    private readonly moduleProvider: EsriModuleProviderService,
+    private readonly layerSourcesService: LayerSourcesService
+  ) {}
 
   private readonly sportsSafetyFirstLayerIds = new Set([
     'softball-parking-safety-first',
@@ -81,6 +85,8 @@ export class LegendElementComponent implements OnInit {
   public infos: Observable<Array<LegendInfo>>;
   public expanded = true;
 
+  public legendConfig: LayerSourceLegendConfig | undefined;
+
   public get showGroupHeader(): boolean {
     if (this.hideGroupHeader) {
       return false;
@@ -106,6 +112,12 @@ export class LegendElementComponent implements OnInit {
   }
 
   public async ngOnInit(): Promise<void> {
+    const layerId = this.layer?.id ?? (this.layer as unknown as esri.Sublayer)?.layer?.id;
+    if (layerId) {
+      const source = this.layerSourcesService.getLayerSources().find((s) => s.id === layerId);
+      this.legendConfig = source?.legend;
+    }
+
     if (!this.element?.infos) {
       this.infos = of([]);
       return;
@@ -185,6 +197,24 @@ export class LegendElementComponent implements OnInit {
 
   public getSportsSafetyFirstLegendLabel(): string {
     return this.sportsSafetyFirstLegendLabel;
+  }
+
+  public getLegendIconSrc(info: { src?: string }): string | undefined {
+    if (this.legendConfig?.mode === 'custom-src' && this.legendConfig.src) {
+      return this.legendConfig.src;
+    }
+    return info.src;
+  }
+
+  public getLegendIconImgStyles(info: { opacity?: number }): Record<string, string | number> {
+    const base: Record<string, string | number> = info.opacity !== undefined ? { opacity: info.opacity } : {};
+    if (!this.legendConfig) return base;
+    return { ...base, ...this._buildIconStyles(this.legendConfig) };
+  }
+
+  public getLegendContainerStyles(): Record<string, string> {
+    if (!this.legendConfig) return {};
+    return this._buildIconStyles(this.legendConfig);
   }
 
   /**
@@ -283,6 +313,18 @@ export class LegendElementComponent implements OnInit {
     });
 
     return whereParts.length > 0 ? whereParts.join(' AND ') : '1=1';
+  }
+
+  private _buildIconStyles(config: LayerSourceLegendConfig): Record<string, string> {
+    const styles: Record<string, string> = {};
+    if (config.width !== undefined) styles['width'] = `${config.width}px`;
+    if (config.height !== undefined) styles['height'] = `${config.height}px`;
+    if (config.fit) {
+      styles['object-fit'] = config.fit;
+    } else if (config.preserveAspectRatio) {
+      styles['object-fit'] = 'contain';
+    }
+    return styles;
   }
 
   /**
