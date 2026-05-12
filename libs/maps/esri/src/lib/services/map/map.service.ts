@@ -40,6 +40,12 @@ export class EsriMapService {
 
   private _viewClickHandle: IHandle;
 
+  private _layerSourceRegistry: Map<string, LayerSource> = new Map();
+  private _layersBeingRetried: Set<string> = new Set();
+  private _layerRetryCount: Map<string, number> = new Map();
+  private readonly _maxLayerRetries = 3;
+  private readonly _layerRetryBaseDelayMs = 1500;
+
   public hitTest: Observable<HitTestSnapshot> = this._hitTest.asObservable();
 
   // Exposed observable that will be responsible for emitting values to subscribers
@@ -128,6 +134,7 @@ export class EsriMapService {
     this.selectFeaturesFromUrl();
 
     this.registerViewClickEventHandler();
+    this.registerLayerViewErrorHandler();
   }
 
   public destroy() {
@@ -136,6 +143,10 @@ export class EsriMapService {
       this._modules.view.destroy();
 
       this._store.next(undefined);
+
+      this._layerSourceRegistry.clear();
+      this._layersBeingRetried.clear();
+      this._layerRetryCount.clear();
     }
   }
 
@@ -191,6 +202,103 @@ export class EsriMapService {
     if ('remove' in this._viewClickHandle) {
       this._viewClickHandle.remove();
     }
+  }
+
+  /**
+   * Recursively registers all descendant layer sources in the registry, mapping each child ID
+   * to the provided `topSource`. When a nested child fires layerview-create-error, the handler
+   * can look up the child ID and get the top-level source required to recreate the whole group.
+   */
+  private _registerDescendantSources(source: LayerSource, topSource: LayerSource): void {
+    const children = (source as GroupLayerSourceProperties).sources;
+    if (!children) {
+      return;
+    }
+    children.forEach((child) => {
+      this._layerSourceRegistry.set(child.id, topSource);
+      this._registerDescendantSources(child, topSource);
+    });
+  }
+
+  private registerLayerViewErrorHandler() {
+    if (!this._modules.view) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this._modules.view as any).on('layerview-create-error', (event: { layer: esri.Layer; error: unknown }) => {
+      const err = event.error as { name?: string; details?: { httpStatus?: number } };
+      const isServerError = err?.name === 'request:server' || (err?.details?.httpStatus ?? 0) >= 500;
+
+      if (!isServerError) {
+        return;
+      }
+
+      const failedLayer = event.layer;
+
+      // Look up the failed layer's ID in the registry. For children of a GroupLayer, the registry
+      // maps child IDs → the parent group source (registered by _registerDescendantSources), so
+      // retrySource.id is the GROUP's ID. For top-level layers it's the layer itself.
+      const retrySource = this._layerSourceRegistry.get(failedLayer.id);
+
+      if (!retrySource) {
+        console.warn(`Layer '${failedLayer.id}' failed but has no registered source config — cannot retry.`);
+        return;
+      }
+
+      // retryId is the actual layer to remove and recreate (may be the parent group's ID).
+      const retryId = retrySource.id;
+
+      // One retry at a time per layer ID — don't pile up duplicate timeouts.
+      if (this._layersBeingRetried.has(retryId)) {
+        return;
+      }
+
+      const retries = this._layerRetryCount.get(retryId) ?? 0;
+
+      if (retries >= this._maxLayerRetries) {
+        console.error(`Layer '${retryId}' failed after ${this._maxLayerRetries} retries. Service may be unavailable.`);
+        return;
+      }
+
+      this._layersBeingRetried.add(retryId);
+      this._layerRetryCount.set(retryId, retries + 1);
+
+      const delay = this._layerRetryBaseDelayMs * Math.pow(2, retries);
+      console.warn(`Layer '${retryId}' failed (server error). Retrying in ${delay}ms (attempt ${retries + 1}/${this._maxLayerRetries})...`);
+
+      setTimeout(async () => {
+        this._layersBeingRetried.delete(retryId);
+
+        const map = this._modules.map;
+        if (!map) {
+          return;
+        }
+
+        // Remove the stale failed instance. ESRI does not allow re-loading a failed layer, so we
+        // must destroy it and let findLayerOrCreateFromSource build a fresh one from the source config.
+        const existingLayer = map.findLayerById(retryId);
+        const layerIndex = existingLayer ? map.layers.indexOf(existingLayer) : undefined;
+
+        if (existingLayer) {
+          map.remove(existingLayer);
+        }
+
+        try {
+          const newLayer = await this.findLayerOrCreateFromSource(retrySource);
+
+          // Re-insert at the original index if we captured one, so layer draw order is preserved.
+          if (layerIndex !== undefined && layerIndex >= 0 && newLayer && !(newLayer instanceof Array)) {
+            map.remove(newLayer);
+            map.add(newLayer, layerIndex);
+          }
+
+          console.log(`Layer '${retryId}' recovered (attempt ${retries + 1}).`);
+        } catch (retryErr) {
+          console.error(`Retry failed for layer '${retryId}':`, retryErr);
+        }
+      }, delay);
+    });
   }
 
   /**
@@ -278,9 +386,13 @@ export class EsriMapService {
   public async loadLayers(sources: LayerSource[]) {
     await this.registerIdentityAuthInfos(sources);
 
-    for (const source of sources) {
-      await this.findLayerOrCreateFromSource(source);
-    }
+    await Promise.all(
+      sources.map((source) =>
+        this.findLayerOrCreateFromSource(source).catch((err) => {
+          console.error(`Failed to load layer '${source?.id}':`, err);
+        })
+      )
+    );
   }
 
   public async generateLayer(source: LayerSource | AutocastableLayer): Promise<esri.Layer | Array<esri.Layer>> {
@@ -360,9 +472,16 @@ export class EsriMapService {
 
         // If sources have been defined in the layer source, cast them into their respective layer types.
         if (s.sources) {
-          const layerPromises = s.sources.map((ls) => this.generateLayer(ls));
-
-          const layers = await Promise.all(layerPromises);
+          const layers = (
+            await Promise.all(
+              s.sources.map((ls) =>
+                this.generateLayer(ls).catch((err) => {
+                  console.error(`Failed to generate child layer '${ls?.id}':`, err);
+                  return null;
+                })
+              )
+            )
+          ).filter((l) => l !== null);
 
           // Create and return new group layer
           return new GroupLayer({ ...props, layers: layers } as esri.GroupLayerProperties);
@@ -406,14 +525,17 @@ export class EsriMapService {
    * to another method that resolves the individual layers.
    */
   private resolveLayerFromJsonp(source, props: { [key: string]: string | number | boolean }) {
-    return lastValueFrom(this.http.get(source.url, { params: { ...props } })).then(
-      (res: { layers: Array<IPortalLayer> }) => {
+    return lastValueFrom(this.http.get(source.url, { params: { ...props } }))
+      .then((res: { layers: Array<IPortalLayer> }) => {
         return this.resolveUnloadedLayers({
           layers: res.layers,
           source: source
         });
-      }
-    );
+      })
+      .catch((err) => {
+        console.error(`Failed to load map-server layer '${source.id}' from ${source.url}:`, err);
+        return null;
+      });
   }
 
   /**
@@ -426,6 +548,12 @@ export class EsriMapService {
    * @param {LayerSource} source
    */
   public findLayerOrCreateFromSource(source: LayerSource): Promise<esri.Layer | Array<esri.Layer>> {
+    // Register this source, then recursively register all descendants pointing back to this source.
+    // That way, when a nested child layer fires layerview-create-error, we can look up the child ID
+    // and still get the top-level source needed to recreate the whole parent group.
+    this._layerSourceRegistry.set(source.id, source);
+    this._registerDescendantSources(source, source);
+
     const map: esri.Map = this._modules.map;
 
     if (this.layerExists(source.id)) {
@@ -438,21 +566,27 @@ export class EsriMapService {
       });
     } else {
       // Generate the layer
-      return this.generateLayer(source).then((layerOrLayers) => {
-        if (layerOrLayers instanceof Array) {
-          // Add layer to map
-          (<esri.Map>this._modules.map).addMany(layerOrLayers, source.layerIndex ?? undefined);
+      return this.generateLayer(source)
+        .then((layerOrLayers) => {
+          if (layerOrLayers === null || layerOrLayers === undefined) {
+            return null;
+          }
 
-          // Return layer in case further manipulation is needed.
-          return layerOrLayers;
-        } else {
-          // Add layer to map
-          (<esri.Map>this._modules.map).add(layerOrLayers, source.layerIndex ?? undefined);
-
-          // Return layer in case further manipulation is needed.
-          return layerOrLayers;
-        }
-      });
+          if (layerOrLayers instanceof Array) {
+            const validLayers = layerOrLayers.filter((l) => l !== null && l !== undefined);
+            if (validLayers.length > 0) {
+              (<esri.Map>this._modules.map).addMany(validLayers, source.layerIndex ?? undefined);
+            }
+            return validLayers;
+          } else {
+            (<esri.Map>this._modules.map).add(layerOrLayers, source.layerIndex ?? undefined);
+            return layerOrLayers;
+          }
+        })
+        .catch((err) => {
+          console.error(`Failed to create layer '${source.id}':`, err);
+          return null;
+        });
     }
   }
 
