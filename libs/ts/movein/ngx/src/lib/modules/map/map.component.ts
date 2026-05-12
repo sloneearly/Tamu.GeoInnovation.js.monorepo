@@ -14,6 +14,8 @@ import { LegendService } from '@tamu-gisc/maps/feature/legend';
 import { TripPlannerService } from '@tamu-gisc/maps/feature/trip-planner';
 import { NotificationService } from '@tamu-gisc/common/ngx/ui/notification';
 import { BasemapGalleryService } from '@tamu-gisc/maps/feature/basemap';
+import { ModalService } from '@tamu-gisc/ui-kits/ngx/layout/modal';
+import { BetaPromptComponent } from '@tamu-gisc/aggiemap/ngx/ui/shared';
 
 import { MoveinOutService } from './services/move-in-out/move-in-out.service';
 import { MoveInOutSettingsService } from './services/move-in-out-settings/move-in-out-settings.service';
@@ -55,6 +57,7 @@ export class MapComponent implements OnInit, OnDestroy {
     private readonly env: EnvironmentService,
     private readonly ns: NotificationService,
     private readonly ts: TestingService,
+    private readonly ms: ModalService,
     private readonly rt: Router,
     private readonly ar: ActivatedRoute,
     private readonly mioSettings: MoveInOutSettingsService,
@@ -206,6 +209,12 @@ export class MapComponent implements OnInit, OnDestroy {
       throw new Error('No event provided.');
     }
   };
+
+  public openBetaModal(shouldOpen: boolean) {
+    if (shouldOpen) {
+      this.ms.open<boolean>(BetaPromptComponent).subscribe();
+    }
+  }
 
   public notifyUrlCopy() {
     this.ns.toast({

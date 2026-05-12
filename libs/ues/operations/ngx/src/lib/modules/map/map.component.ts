@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { loadModules } from 'esri-loader';
@@ -7,6 +7,9 @@ import { loadModules } from 'esri-loader';
 import { MapServiceInstance, MapConfig } from '@tamu-gisc/maps/esri';
 import { ResponsiveService } from '@tamu-gisc/dev-tools/responsive';
 import { EnvironmentService } from '@tamu-gisc/common/ngx/environment';
+import { TestingService } from '@tamu-gisc/dev-tools/application-testing';
+import { ModalService } from '@tamu-gisc/ui-kits/ngx/layout/modal';
+import { BetaPromptComponent } from '@tamu-gisc/aggiemap/ngx/ui/shared';
 
 import esri = __esri;
 
@@ -20,13 +23,20 @@ export class MapComponent implements OnInit, OnDestroy {
   public view: esri.MapView;
   public isMobile: boolean;
   public config: MapConfig;
+  public isDev: Observable<boolean>;
 
   private _destroy$: Subject<boolean> = new Subject();
 
-  constructor(private responsiveService: ResponsiveService, private environment: EnvironmentService) {}
+  constructor(
+    private responsiveService: ResponsiveService,
+    private environment: EnvironmentService,
+    private readonly ts: TestingService,
+    private readonly ms: ModalService
+  ) {}
 
   public ngOnInit() {
     const connections = this.environment.value('Connections');
+    this.isDev = this.ts.get('isTesting');
 
     this.responsiveService.isMobile.pipe(takeUntil(this._destroy$)).subscribe((value) => {
       this.isMobile = value;
@@ -159,4 +169,10 @@ export class MapComponent implements OnInit, OnDestroy {
       throw new Error('No event provided.');
     }
   };
+
+  public openBetaModal(shouldOpen: boolean) {
+    if (shouldOpen) {
+      this.ms.open<boolean>(BetaPromptComponent).subscribe();
+    }
+  }
 }

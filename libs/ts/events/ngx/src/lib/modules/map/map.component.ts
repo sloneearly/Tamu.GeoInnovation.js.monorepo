@@ -15,6 +15,8 @@ import { LegendService } from '@tamu-gisc/maps/feature/legend';
 import { LayerListService } from '@tamu-gisc/maps/feature/layer-list';
 import { AggiemapBasemap, BasemapGalleryService } from '@tamu-gisc/maps/feature/basemap';
 import { LocalStoreService } from '@tamu-gisc/common/ngx/local-store';
+import { ModalService } from '@tamu-gisc/ui-kits/ngx/layout/modal';
+import { BetaPromptComponent } from '@tamu-gisc/aggiemap/ngx/ui/shared';
 
 import { EventSettingsService } from '../../services/settings/event-settings.service';
 import { EventService } from '../../services/event/event.service';
@@ -61,6 +63,7 @@ export class MapComponent implements OnInit, OnDestroy {
     private readonly env: EnvironmentService,
     private readonly ns: NotificationService,
     private readonly ts: TestingService,
+    private readonly ms: ModalService,
     private readonly rt: Router,
     private readonly ar: ActivatedRoute,
     private readonly store: LocalStoreService,
@@ -226,6 +229,12 @@ export class MapComponent implements OnInit, OnDestroy {
       throw new Error('No event provided.');
     }
   };
+
+  public openBetaModal(shouldOpen: boolean) {
+    if (shouldOpen) {
+      this.ms.open<boolean>(BetaPromptComponent).subscribe();
+    }
+  }
 
   public notifyUrlCopy() {
     this.ns.toast({

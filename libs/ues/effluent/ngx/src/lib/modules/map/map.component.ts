@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { from, Subject } from 'rxjs';
+import { from, Observable, Subject } from 'rxjs';
 import { takeUntil, map, withLatestFrom, filter, switchMap } from 'rxjs/operators';
 
 import { loadModules } from 'esri-loader';
@@ -8,6 +8,9 @@ import { LayerListService } from '@tamu-gisc/maps/feature/layer-list';
 import { MapServiceInstance, MapConfig } from '@tamu-gisc/maps/esri';
 import { ResponsiveService } from '@tamu-gisc/dev-tools/responsive';
 import { EnvironmentService } from '@tamu-gisc/common/ngx/environment';
+import { TestingService } from '@tamu-gisc/dev-tools/application-testing';
+import { ModalService } from '@tamu-gisc/ui-kits/ngx/layout/modal';
+import { BetaPromptComponent } from '@tamu-gisc/aggiemap/ngx/ui/shared';
 
 import { ResultsService } from '../data-access/results/results.service';
 
@@ -23,6 +26,7 @@ export class MapComponent implements OnInit, OnDestroy {
   public view: esri.MapView;
   public isMobile: boolean;
   public config: MapConfig;
+  public isDev: Observable<boolean>;
 
   private _destroy$: Subject<boolean> = new Subject();
 
@@ -30,11 +34,14 @@ export class MapComponent implements OnInit, OnDestroy {
     private responsiveService: ResponsiveService,
     private environment: EnvironmentService,
     private layerListService: LayerListService,
-    private resultsService: ResultsService
+    private resultsService: ResultsService,
+    private readonly ts: TestingService,
+    private readonly ms: ModalService
   ) {}
 
   public ngOnInit() {
     const connections = this.environment.value('Connections');
+    this.isDev = this.ts.get('isTesting');
 
     this.responsiveService.isMobile.pipe(takeUntil(this._destroy$)).subscribe((value) => {
       this.isMobile = value;
@@ -187,6 +194,12 @@ export class MapComponent implements OnInit, OnDestroy {
       throw new Error('No event provided.');
     }
   };
+
+  public openBetaModal(shouldOpen: boolean) {
+    if (shouldOpen) {
+      this.ms.open<boolean>(BetaPromptComponent).subscribe();
+    }
+  }
 
   private generateUniqueValueRenderer() {
     return this.resultsService.getLatestResults().pipe(
