@@ -1,35 +1,47 @@
 <div class="maps-page-shell">
     <tamu-gisc-maps-page-header [title]="title" [intro]="intro"></tamu-gisc-maps-page-header>
 
-    <div class="maps-list-section trailer-3">
-      <ul class="event-links map-entry-list" *ngIf="applications.length > 0; else noEvents">
-        <li class="event-link-item map-entry-item" *ngFor="let app of applications">
-          <a class="map-entry" [routerLink]="getApplicationRoute(app)">
-            <span class="map-entry-icon" aria-hidden="true"></span>
-            <span class="map-entry-label">{{ app.name }}</span>
-          </a>
-        </li>
-      </ul>
+    <div class="maps-list-section trailer-3" *ngIf="hasApplications; else noEvents">
+      <div class="season-columns" *ngIf="groupBySeason; else flowedList">
+        <div class="season-column" *ngFor="let column of seasonColumns">
+          <h2 class="season-column-heading">{{ column.heading }}</h2>
 
-      <ng-template #noEvents>
-        <div class="empty-state">
-          <p>No event maps are available right now.</p>
+          <ul class="map-entry-list" *ngIf="column.applications.length > 0; else noColumnMaps">
+            <li class="map-entry-item" *ngFor="let app of column.applications">
+              <a class="map-entry" [routerLink]="getApplicationRoute(app)">
+                <span class="map-entry-icon" aria-hidden="true"></span>
+                <span class="map-entry-label">{{ app.name }}</span>
+              </a>
+            </li>
+          </ul>
+
+          <ng-template #noColumnMaps>
+            <p class="section-description">No maps available.</p>
+          </ng-template>
         </div>
+      </div>
+
+      <ng-template #flowedList>
+        <ul class="event-links map-entry-list">
+          <li class="event-link-item map-entry-item" *ngFor="let app of applications">
+            <a class="map-entry" [routerLink]="getApplicationRoute(app)">
+              <span class="map-entry-icon" aria-hidden="true"></span>
+              <span class="map-entry-label">{{ app.name }}</span>
+            </a>
+          </li>
+        </ul>
       </ng-template>
     </div>
 
-    <!-- TODO: Replace placeholder related-link targets with the final Transportation Services list. -->
-    <div class="related-links-box">
-      <p class="related-links-superheader">General Parking</p>
-      <hr class="related-links-divider" />
-
-      <div class="related-links-grid">
-        <a class="related-link" [routerLink]="mainParkingRoute"><span class="related-link-chevron">&raquo;</span><span class="related-link-label">Campus Main Parking</span></a>
-        <a class="related-link" routerLink="/parking/visitor-parking"><span class="related-link-chevron">&raquo;</span><span class="related-link-label">Visitor Parking</span></a>
-        <a class="related-link" routerLink="/parking/accessible-parking"><span class="related-link-chevron">&raquo;</span><span class="related-link-label">Accessible Parking</span></a>
-        <a class="related-link" routerLink="/parking/timed-parking"><span class="related-link-chevron">&raquo;</span><span class="related-link-label">Timed Parking</span></a>
+    <ng-template #noEvents>
+      <div class="maps-list-section trailer-3">
+        <div class="empty-state">
+          <p>No maps are available right now.</p>
+        </div>
       </div>
-    </div>
+    </ng-template>
+
+    <tamu-gisc-maps-quick-links></tamu-gisc-maps-quick-links>
 </div>
 
 <tamu-gisc-footer></tamu-gisc-footer>

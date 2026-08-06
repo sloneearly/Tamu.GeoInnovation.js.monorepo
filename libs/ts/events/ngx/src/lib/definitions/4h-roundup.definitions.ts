@@ -97,6 +97,7 @@ export const FourHRoundupTs: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for 4-H Roundup.',
     source: 'internal',
     type: 'event',
+    season: 'summer',
     keywords: ['4h', 'roundup', 'parking', 'transportation']
   }
 };

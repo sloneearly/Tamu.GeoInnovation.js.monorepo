@@ -192,6 +192,8 @@ export const ArgentinaVsHondurasTs: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for the Road to 26: Argentina vs. Honduras soccer match.',
     source: 'internal',
     type: 'event',
-    keywords: ['road to 26', 'argentina', 'honduras', 'soccer', 'parking', 'shuttle', 'transportation']
+    keywords: ['road to 26', 'argentina', 'honduras', 'soccer', 'parking', 'shuttle', 'transportation'],
+    // One-off match that has passed; delisted from the Campus Events page.
+    hidden: true
   }
 };

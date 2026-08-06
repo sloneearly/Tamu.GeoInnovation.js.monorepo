@@ -364,6 +364,7 @@ export const PhysicsAndEngineeringFestivalTs: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for Physics and Engineering Festival.',
     source: 'internal',
     type: 'event',
+    season: 'spring',
     keywords: ['physics', 'engineering', 'festival', 'parking', 'transportation']
   }
 };

@@ -1,4 +1,4 @@
-import { DiscoverMapType, EventConfiguration, ParkingCategory } from '@tamu-gisc/ts/events/ngx';
+import { DiscoverMapType, EventConfiguration, EventSeason, ParkingCategory } from '@tamu-gisc/ts/events/ngx';
 
 interface BaseDiscoverApplication {
   id: string;
@@ -25,6 +25,11 @@ export interface InternalDiscoverApplication extends BaseDiscoverApplication {
   type: 'event' | 'parking' | 'operations';
   mapType: DiscoverMapType;
   parkingCategory?: ParkingCategory;
+  /**
+   * Resolved season used to place event maps in the Fall / Spring / Summer columns. Taken from the
+   * map's discover metadata when declared, otherwise derived from its configured event dates.
+   */
+  season?: EventSeason;
   configuration: EventConfiguration;
 }
 

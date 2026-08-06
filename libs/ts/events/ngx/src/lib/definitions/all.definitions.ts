@@ -21,7 +21,7 @@ import { SoccerParkingTs } from './soccer-parking.definitions';
 import { VolleyballParkingTs } from './volleyball-parking.definitions';
 import { TroubadourTs } from './troubadour-festival.definitions';
 import { FootballParkingEvent } from './football-parking.definitions';
-import { RingDayEvent } from './ring-day.definitions';
+import { RingDayEvents } from './ring-day.definitions';
 import { AggiemapCustomMapConfiguration } from '../interfaces/special-event.interface';
 import { MensBasketball_Ts } from './mens-basketball.definitions';
 import { WomensBasketball_Ts } from './womens-basketball.definitions';
@@ -87,7 +87,8 @@ export const EventDefinitions: Array<AggiemapCustomMapConfiguration> = [
   VolleyballParkingTs,
   TroubadourTs,
   FootballParkingEvent,
-  RingDayEvent,
+  // One event per Ring Day occurrence (fall / spring / summer), all sharing the Ring Day services.
+  ...RingDayEvents,
   WomensBasketball_Ts,
   GisDayTs,
   MoveOut,

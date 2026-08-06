@@ -220,6 +220,7 @@ export const MusterTs: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for Muster.',
     source: 'internal',
     type: 'event',
+    season: 'spring',
     keywords: ['muster', 'parking', 'transportation']
   }
 };

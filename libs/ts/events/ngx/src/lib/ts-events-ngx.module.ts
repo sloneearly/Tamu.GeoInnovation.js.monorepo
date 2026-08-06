@@ -12,6 +12,14 @@ import { RouteParamsGuard } from './guards/route-params/route-params.guard';
 
 const routes: Routes = [
   {
+    // Ring Day was split into one event per occurrence (fall / spring / summer). Existing links to
+    // the old single event — including the ones The Association publishes — land on the next
+    // scheduled occurrence instead of falling through to the main map. Point this at whichever
+    // occurrence is next when the dates roll over.
+    path: 'ring-day',
+    redirectTo: 'ring-day-fall'
+  },
+  {
     path: ':eventId',
     canActivate: [RouteParamsGuard, EventEntryGuard],
     children: [

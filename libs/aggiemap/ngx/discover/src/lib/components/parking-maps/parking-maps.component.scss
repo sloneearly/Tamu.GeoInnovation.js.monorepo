@@ -19,6 +19,8 @@
   margin: 0 0 0.85rem;
 }
 
+// Accordion styles are retained while the markup is commented out in the template, so the section
+// can be restored without rebuilding its look. Remove both together if it is dropped for good.
 .accordion-section {
   margin-top: 2.5rem;
   max-width: 48rem;

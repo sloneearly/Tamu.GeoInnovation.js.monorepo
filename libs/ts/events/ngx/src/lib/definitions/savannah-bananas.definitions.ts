@@ -207,6 +207,8 @@ export const SavannahBananasParkingTs: AggiemapCustomMapConfiguration = {
     source: 'internal',
     type: 'event',
     mapType: 'athletics',
-    keywords: ['savannah bananas', 'texas tailgaters', 'kyle field', 'parking', 'transportation']
+    keywords: ['savannah bananas', 'texas tailgaters', 'kyle field', 'parking', 'transportation'],
+    // Delisted from the Athletics Events page until the next Banana Ball visit is scheduled.
+    hidden: true
   }
 };

@@ -124,6 +124,8 @@ export const SoftballRegionalsTs: AggiemapCustomMapConfiguration = {
     source: 'internal',
     type: 'event',
     mapType: 'athletics',
-    keywords: ['softball', 'regionals', 'parking', 'transportation']
+    keywords: ['softball', 'regionals', 'parking', 'transportation'],
+    // Delisted from the Athletics Events page until the next regionals are hosted here.
+    hidden: true
   }
 };

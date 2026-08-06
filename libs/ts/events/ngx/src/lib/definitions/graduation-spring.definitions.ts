@@ -276,6 +276,7 @@ export const GraduationSpringEventTs: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for spring graduation ceremonies.',
     source: 'internal',
     type: 'event',
+    season: 'spring',
     keywords: ['graduation', 'commencement', 'parking', 'transportation']
   }
 };

@@ -130,6 +130,7 @@ export const MoveOut: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for Move Out.',
     source: 'internal',
     type: 'event',
+    season: 'spring',
     keywords: ['move out', 'parking', 'transportation']
   }
 };

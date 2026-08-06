@@ -471,9 +471,33 @@ export interface DiscoverMetadata {
    * parking map falls back to the `general` column.
    */
   parkingCategory?: ParkingCategory;
+
+  /**
+   * Academic season the event belongs to. Used to group event maps into the Fall / Spring / Summer
+   * columns on the Campus Events page.
+   *
+   * When omitted, the consuming UI derives the season from the configuration's `eventDates`, so an
+   * event only needs to set this explicitly when it has no dates or when its dates straddle a season
+   * boundary (for example, a recurring map like Move In whose dates are supplied by the builder).
+   */
+  season?: EventSeason;
+
+  /**
+   * Hides the map from the discover listings (All Maps search, category pages) while leaving its
+   * route and configuration intact so existing links keep working.
+   *
+   * Use this to shelve a seasonal or one-off map that Transportation Services expects to bring back
+   * rather than deleting its definition.
+   */
+  hidden?: boolean;
 }
 
 /**
  * Sub-grouping for parking maps on the Parking Maps page.
  */
 export type ParkingCategory = 'general' | 'business' | 'permit';
+
+/**
+ * Academic season used to group event maps into columns on the Campus Events page.
+ */
+export type EventSeason = 'fall' | 'spring' | 'summer';

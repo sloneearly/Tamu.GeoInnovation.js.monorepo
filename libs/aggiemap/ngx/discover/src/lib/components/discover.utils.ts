@@ -1,3 +1,5 @@
+import { EventSeason } from '@tamu-gisc/ts/events/ngx';
+
 import { DiscoverApplication, InternalDiscoverApplication } from '../interfaces/discover-application.interface';
 
 /**
@@ -67,6 +69,46 @@ export function getEventDateRange(dates: Array<string | Date | number>): string 
   }
 
   return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+}
+
+/**
+ * Academic season boundaries, expressed as the last `[month, day]` of each season. Chosen to match
+ * the university calendar rather than the meteorological one: spring runs through the May
+ * commencement ceremonies, and the fall term opens with the mid-August residence hall move-in.
+ */
+const SEASON_END_DATES: Array<{ season: EventSeason; month: number; day: number }> = [
+  { season: 'spring', month: 5, day: 31 },
+  { season: 'summer', month: 8, day: 14 }
+];
+
+/**
+ * Derives the academic season an event falls in from its configured dates, using the earliest date
+ * so that an event spanning a season boundary is filed under the season it starts in.
+ *
+ * Returns `undefined` when the event has no usable dates — those maps declare a `season` explicitly
+ * in their discover metadata instead.
+ */
+export function deriveEventSeason(dates: Array<string | Date | number>): EventSeason | undefined {
+  if (!dates || dates.length === 0) {
+    return undefined;
+  }
+
+  const earliest = dates
+    .map((date) => parseEventDate(date))
+    .filter((time) => Number.isFinite(time))
+    .sort((a, b) => a - b)[0];
+
+  if (earliest === undefined) {
+    return undefined;
+  }
+
+  const date = new Date(earliest);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  const match = SEASON_END_DATES.find((boundary) => month < boundary.month || (month === boundary.month && day <= boundary.day));
+
+  return match ? match.season : 'fall';
 }
 
 /**

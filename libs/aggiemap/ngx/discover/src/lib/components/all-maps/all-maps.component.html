@@ -12,7 +12,7 @@
       <h2>Visit Maps</h2>
 
       <div class="visit-maps-row">
-        <a class="main-parking-button" [routerLink]="mainParkingRoute">Campus Main Parking</a>
+        <a class="main-parking-button" [routerLink]="mainParkingRoute">Main Campus Parking Map</a>
 
         <a class="visit-maps-tile" routerLink="/all-maps/parking">
           <span class="visit-maps-icon">
@@ -40,8 +40,43 @@
           </span>
           <span class="visit-maps-label">Campus Events</span>
         </a>
+
+        <a class="visit-maps-tile" routerLink="/all-maps/operations">
+          <span class="visit-maps-icon">
+            <!-- Crossed wrench and screwdriver, drawn as line art on the same 64x64 grid and stroke
+                 weight as the sibling Aggie UX tile icons. The mask knocks a gap out of the wrench
+                 where the screwdriver crosses in front of it, so the two tools stay legible. -->
+            <svg viewBox="0 0 64 64" aria-hidden="true">
+              <defs>
+                <mask id="operations-icon-cross">
+                  <rect width="64" height="64" fill="#fff" />
+                  <path
+                    transform="rotate(-45 32 32)"
+                    d="M28 6L30 14V33H27.5V38H25.5V51.5A6.5 6.5 0 0 0 38.5 51.5V38H36.5V33H34V14L36 6Z"
+                    fill="#000"
+                    stroke="#000"
+                    stroke-width="6"
+                    stroke-linejoin="round"
+                  />
+                </mask>
+              </defs>
+              <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+                <g mask="url(#operations-icon-cross)">
+                  <path transform="rotate(45 32 32)" d="M23 26V6h6v11h6V6h6v20h-6v26a3 3 0 0 1-6 0V26Z" />
+                </g>
+                <path
+                  transform="rotate(-45 32 32)"
+                  d="M28 6L30 14V33H27.5V38H25.5V51.5A6.5 6.5 0 0 0 38.5 51.5V38H36.5V33H34V14L36 6Z"
+                />
+              </g>
+            </svg>
+          </span>
+          <span class="visit-maps-label">Operations</span>
+        </a>
       </div>
     </div>
+
+    <tamu-gisc-maps-quick-links class="trailer-3"></tamu-gisc-maps-quick-links>
 
     <div class="search-section trailer-5">
       <h2>Search Maps</h2>

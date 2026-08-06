@@ -171,6 +171,7 @@ export const SummerCommencementTs: AggiemapCustomMapConfiguration = {
     description: 'Transportation and parking information for summer graduation ceremonies.',
     source: 'internal',
     type: 'event',
+    season: 'summer',
     keywords: ['summer', 'commencement', 'graduation', 'parking', 'transportation']
   }
 };

@@ -12,6 +12,7 @@ import { AllMapsComponent } from './components/all-maps/all-maps.component';
 import { ParkingMapsComponent } from './components/parking-maps/parking-maps.component';
 import { EventMapsComponent } from './components/event-maps/event-maps.component';
 import { MapsPageHeaderComponent } from './components/maps-page-header/maps-page-header.component';
+import { QuickLinksComponent } from './components/quick-links/quick-links.component';
 
 const routes: Routes = [
   {
@@ -28,7 +29,8 @@ const routes: Routes = [
     data: {
       mapType: 'campus',
       title: 'Campus Events',
-      intro: 'Browse campus event maps for transportation, parking, and special events.'
+      intro: 'Browse campus event maps for transportation, parking, and special events.',
+      groupBySeason: true
     }
   },
   {
@@ -38,6 +40,15 @@ const routes: Routes = [
       mapType: 'athletics',
       title: 'Athletics Events',
       intro: 'Browse athletic event maps for gameday parking and transportation information.'
+    }
+  },
+  {
+    path: 'operations',
+    component: EventMapsComponent,
+    data: {
+      mapType: 'operations',
+      title: 'Operations',
+      intro: 'Browse operations maps for campus construction, maintenance, and facilities activity.'
     }
   }
 ];
@@ -53,7 +64,13 @@ const routes: Routes = [
     AggiemapNgxSharedUiStructuralModule,
     PipesModule
   ],
-  declarations: [AllMapsComponent, ParkingMapsComponent, EventMapsComponent, MapsPageHeaderComponent],
+  declarations: [
+    AllMapsComponent,
+    ParkingMapsComponent,
+    EventMapsComponent,
+    MapsPageHeaderComponent,
+    QuickLinksComponent
+  ],
   exports: [AllMapsComponent]
 })
 export class DiscoverModule {}
