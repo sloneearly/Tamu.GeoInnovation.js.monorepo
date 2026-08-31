@@ -7,6 +7,7 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { closureHatchSymbol } from './common.definitions';
 
 import esri = __esri;
 
@@ -92,6 +93,35 @@ const createFamilyWeekendParkingRenderer = (paidParkingColor: number[]): Feature
 const saturdayParkingRenderer = createFamilyWeekendParkingRenderer([81, 179, 54, 255]);
 const sundayParkingRenderer = createFamilyWeekendParkingRenderer([79, 179, 53, 255]);
 
+/**
+ * Friday publishes only two categories, and its `Closure` is a solid red fill rather than a hatch.
+ * The paid-parking class is reproduced as published so only the closure changes.
+ */
+const fridayParkingRenderer: FeatureRenderer = {
+  type: 'unique-value',
+  field: 'type',
+  uniqueValueInfos: [
+    {
+      value: '$10 Event Parking',
+      label: '$10 Event Parking',
+      symbol: {
+        type: 'simple-fill',
+        color: [81, 179, 54, 255],
+        outline: {
+          type: 'simple-line',
+          color: [68, 137, 112, 255],
+          width: 1
+        }
+      } as unknown as esri.SymbolProperties
+    },
+    {
+      value: 'Closure',
+      label: 'Closure',
+      symbol: closureHatchSymbol as unknown as esri.SymbolProperties
+    }
+  ]
+};
+
 export const FamilyWeekendDefinitions = {
   FRIDAY_PARKING_LOTS: {
     id: FAMILY_WEEKEND_LAYERS.FRIDAY_PARKING_LOTS,
@@ -123,8 +153,9 @@ export const FamilyWeekendColdLayerSources: LayerSource[] = [
     visible: false,
     listMode: 'show',
     native: {
-      outFields: ['*']
-    }
+      outFields: ['*'],
+      renderer: fridayParkingRenderer
+    } as unknown as FeatureNative
   },
   {
     type: 'feature',

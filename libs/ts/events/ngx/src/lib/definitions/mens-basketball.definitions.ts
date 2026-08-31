@@ -7,6 +7,7 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { closureHatchRenderer } from './common.definitions';
 
 export enum MENS_BASKETBALL_LAYERS {
   GATES = 'mens-basketball-gates',
@@ -46,7 +47,9 @@ export const MensBasketball_ColdLayerSources: LayerSource[] = [
     visible: true,
     listMode: 'show',
     native: {
-      outFields: ['*']
+      outFields: ['*'],
+      // The service publishes these closures as a solid red fill; hatch them like every other map.
+      renderer: closureHatchRenderer()
     }
   },
 

@@ -9,6 +9,7 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { closureHatchSymbol } from './common.definitions';
 
 export enum BASEBALL_PARKING_LAYERS {
   EVENT_SYMBOLS = 'baseball-event-symbols',
@@ -67,7 +68,20 @@ export const BaseballParkingColdLayerSources: LayerSource[] = [
     url: `${eventUrl}/2`,
     popupComponent: MarkdownPopupComponent,
     native: {
-      outFields: ['*']
+      outFields: ['*'],
+      // The layer holds every sport's gates and is narrowed to baseball's by its renderer alone, so
+      // the published unique-value class is kept and only its solid red fill swaps for the hatch.
+      renderer: {
+        type: 'unique-value',
+        field: 'baseball',
+        uniqueValueInfos: [
+          {
+            value: '1',
+            label: 'Road Closed',
+            symbol: closureHatchSymbol
+          }
+        ]
+      }
     }
   },
   {

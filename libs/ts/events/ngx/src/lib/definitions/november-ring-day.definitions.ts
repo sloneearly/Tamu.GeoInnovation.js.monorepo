@@ -7,6 +7,7 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { ringDayAreasRenderer } from './ring-day-common.definitions';
 
 export enum NOVEMBER_RING_DAY_LAYERS {
   RD_POIS = 'ring-day-pois',
@@ -61,7 +62,9 @@ export const NovemberRingDayColdLayerSources: LayerSource[] = [
     visible: true,
     listMode: 'show',
     native: {
-      outFields: ['*']
+      outFields: ['*'],
+      // The service publishes `Closure` as a solid red fill; the shared renderer hatches it.
+      renderer: ringDayAreasRenderer
     }
   },
   {

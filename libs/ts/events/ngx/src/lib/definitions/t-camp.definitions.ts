@@ -10,6 +10,7 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { closureHatchSymbol } from './common.definitions';
 
 export enum T_CAMP_LAYERS {
   CAMPUS_LOCATIONS = 't-camp-campus-locations',
@@ -92,7 +93,19 @@ export const TCampColdLayerSources: LayerSource[] = [
     listMode: 'show',
     ...popup,
     native: {
-      outFields: ['*']
+      outFields: ['*'],
+      // The service publishes `Closure` as a solid dark red fill; hatch it like every other map.
+      renderer: {
+        type: 'unique-value',
+        field: 'type',
+        uniqueValueInfos: [
+          {
+            value: 'Closure',
+            label: 'Closure',
+            symbol: closureHatchSymbol
+          }
+        ]
+      }
     }
   },
   {

@@ -7,6 +7,9 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { closureHatchSymbol } from './common.definitions';
+
+type FeatureNative = Extract<LayerSource, { type: 'feature' }>['native'];
 
 export enum MOVE_OUT_LAYERS {
   NO_PARKING = 'No Parking Areas',
@@ -79,8 +82,39 @@ export const MoveOutColdLayerSources: LayerSource[] = [
       }
     },
     native: {
-      outFields: ['*']
-    }
+      outFields: ['*'],
+      // `NoParking` is the street closure, and the service publishes it as a solid red fill. The
+      // other two published classes are reproduced as-is so only the closure changes.
+      renderer: {
+        type: 'unique-value',
+        field: 'Type',
+        uniqueValueInfos: [
+          {
+            value: 'Disabled',
+            label: 'Accessible ONLY',
+            symbol: {
+              type: 'simple-fill',
+              style: 'solid',
+              color: [0, 92, 230, 255]
+            }
+          },
+          {
+            value: 'LZAllWeek',
+            label: '1 HR Loading Only',
+            symbol: {
+              type: 'simple-fill',
+              style: 'solid',
+              color: [56, 168, 0, 255]
+            }
+          },
+          {
+            value: 'NoParking',
+            label: 'NoParking',
+            symbol: closureHatchSymbol
+          }
+        ]
+      }
+    } as unknown as FeatureNative
   },
   {
     type: 'feature',

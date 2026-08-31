@@ -7,6 +7,7 @@ import {
   EventConfiguration,
   SpecialEventOptions
 } from '../interfaces/special-event.interface';
+import { closureHatchSymbol } from './common.definitions';
 
 export enum MS150_LAYERS {
   AVP_PARKING = 'ms150-avp-parking',
@@ -34,6 +35,30 @@ export const MS150Definitions = {
     layerId: MS150_LAYERS.ROUTE,
     name: 'MS150 Route',
     url: `${eventUrl}/2`
+  }
+};
+
+const ms150EventParkingSymbol = {
+  type: 'simple-fill',
+  style: 'solid',
+  color: [81, 179, 54, 255],
+  outline: {
+    type: 'simple-line',
+    style: 'solid',
+    color: [68, 137, 112, 255],
+    width: 1
+  }
+};
+
+const ms150ReservedParkingSymbol = {
+  type: 'simple-fill',
+  style: 'solid',
+  color: [242, 160, 97, 255],
+  outline: {
+    type: 'simple-line',
+    style: 'solid',
+    color: [110, 110, 110, 255],
+    width: 0.7
   }
 };
 
@@ -67,7 +92,40 @@ export const MS150ColdLayerSources: LayerSource[] = [
     visible: true,
     listMode: 'show',
     native: {
-      outFields: ['*']
+      outFields: ['*'],
+      // The service publishes `Closure` as a solid red fill. Every published class is reproduced
+      // here so the legend is unchanged, except the closure, which picks up the shared hatch.
+      renderer: {
+        type: 'unique-value',
+        field: 'type',
+        uniqueValueInfos: [
+          {
+            value: '$10 Event Parking/ParkMobile',
+            label: 'Event Parking',
+            symbol: ms150EventParkingSymbol
+          },
+          {
+            value: 'Paid Hourly Parking',
+            label: 'Event Parking',
+            symbol: ms150EventParkingSymbol
+          },
+          {
+            value: '$10 Event Parking/Any Valid Texas A&M Permit',
+            label: 'Event Parking',
+            symbol: ms150EventParkingSymbol
+          },
+          {
+            value: 'Reserved Parking',
+            label: 'Reserved Parking',
+            symbol: ms150ReservedParkingSymbol
+          },
+          {
+            value: 'Closure',
+            label: 'Closure',
+            symbol: closureHatchSymbol
+          }
+        ]
+      }
     }
   },
 
